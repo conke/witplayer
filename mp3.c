@@ -27,8 +27,26 @@ int get_mp3_param(struct decode *dec, u8 *buff, size_t size, struct mp3_param *p
 
 struct decode *decode_open(decode_type_t type)
 {
-	// fixme!
-	return NULL;
+	struct decode *dec;
+
+	dec = malloc(sizeof(*dec));
+	if (NULL == dec) {
+		return NULL;
+	}
+
+	dec->type = type;
+
+	switch (type) {
+	case MPAUDEC:
+		// dec->dec = mpaudec_open();
+		break;
+
+	case GSTREAMERDEC:
+		// dec->dec = gstreamer_dec_open();
+		break;
+	}
+
+	return dec;
 }
 
 int decode_close(struct decode *dec)
@@ -40,5 +58,13 @@ int decode_close(struct decode *dec)
 int decode(struct decode *dec, u8 *raw_buff, size_t *raw_size, u8 *mp3_buff, size_t mp3_size)
 {
 	// fixme!
-	return 0;
+//	int ret;
+//
+//	if (dec->type == MPAUDEC) {
+//		ret = mpaudec_decode_frame();
+//	} else if (dec->type == GSTREAMERDEC) {
+//		ret = gstreamerdec_decode();
+//	}
+//
+//	return ret;
 }

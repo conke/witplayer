@@ -9,7 +9,7 @@ typedef enum {
 } decode_type_t;
 
 struct mp3_param {
-	int format;
+	int rate;
 	int channels;
 	int bits_per_sample;
 };

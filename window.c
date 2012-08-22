@@ -6,12 +6,6 @@ int show_wave(u8 *raw_data, size_t size, struct mp3_param *param)
 
 	return 0;
 }
-int show_lyric(u8 *lrc_buff, size_t size, struct timeval *total, struct timeval *curr)
-{
-	// fixme!
-
-	return 0;
-}
 
 int show_icon(u8 *icon, size_t size)
 {
