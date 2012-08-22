@@ -1,3 +1,5 @@
+#include "sound_file.h"
+
 struct sound_file_info *sound_file_open(const char *URL)
 {
 

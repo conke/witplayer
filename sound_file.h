@@ -1,4 +1,6 @@
 #pragma once
+#include <stdio.h>
+#include "types.h"
 
 typedef enum {
 	HTTP, LOCAL
