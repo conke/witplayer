@@ -1,4 +1,6 @@
 #include "mp3.h"
+#include "mpaudec.h"
+#include <stdlib.h>
 
 u8 *get_mp3_tag_buff(struct fifo *fifo, size_t *size)
 {
@@ -30,7 +32,8 @@ struct decode *decode_open(decode_type_t type)
 	struct decode *dec;
 
 	dec = malloc(sizeof(*dec));
-	if (NULL == dec) {
+	if (dec == NULL) {
+		perror("malloc");
 		return NULL;
 	}
 
@@ -38,11 +41,10 @@ struct decode *decode_open(decode_type_t type)
 
 	switch (type) {
 	case MPAUDEC:
-		// dec->dec = mpaudec_open();
+		dec->dec = mpaudec_open();
 		break;
-
 	case GSTREAMERDEC:
-		// dec->dec = gstreamer_dec_open();
+		dec->dec = NULL;
 		break;
 	}
 
@@ -51,20 +53,24 @@ struct decode *decode_open(decode_type_t type)
 
 int decode_close(struct decode *dec)
 {
-	// fixme!
+	switch (dec->type) {
+	case MPAUDEC:
+		mpaudec_close(dec->dec);
+		break;
+	case GSTREAMERDEC:
+		break;
+	}
+
+	free(dec);
+
 	return 0;
 }
 
 int decode(struct decode *dec, u8 *raw_buff, size_t *raw_size, u8 *mp3_buff, size_t mp3_size)
 {
-	// fixme!
-//	int ret;
-//
-//	if (dec->type == MPAUDEC) {
-//		ret = mpaudec_decode_frame();
-//	} else if (dec->type == GSTREAMERDEC) {
-//		ret = gstreamerdec_decode();
-//	}
-//
-//	return ret;
+	if (dec->type == MPAUDEC) {
+		return mpaudec_decode_frame(dec->dec, raw_buff, (int *)raw_size, mp3_buff, mp3_size);
+	}
+
+	return 0;
 }
