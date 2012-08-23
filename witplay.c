@@ -124,7 +124,7 @@ L3:
 L2:
 	fifo_close(fifo);
 L1:
-	close(file);
+	sound_file_close(file);
 
 	return ret;
 }
