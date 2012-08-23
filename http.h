@@ -1,6 +1,6 @@
 #pragma once
 #include "sound_file.h"
 
-struct http_file_info *sound_file_open(const char *URL);
-int http_file_close(struct sound_file_into *file);
-int http_file_load(struct sound_file_into *file, u8 *buff, size_t size);
+struct sound_file_info *http_file_open(const char *URL);
+int http_file_close(struct sound_file_info *file);
+int http_file_load(struct sound_file_info *file, u8 *buff, size_t size);
