@@ -1,0 +1,246 @@
+From e5018ad6b9012c2f96fecb6b6dc15dc140768e40 Mon Sep 17 00:00:00 2001
+From: augustine zheng <augustine@augustine-K45VM.(none)>
+Date: Thu, 23 Aug 2012 16:53:44 +0800
+Subject: [PATCH] suport local file open and fifo operate
+
+Signed-off-by: augustine zheng <augustine@augustine-K45VM.(none)>
+Signed-off-by: young.yang <young.yang@maxwit.com>
+---
+ fifo.c  |   68 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------
+ fifo.h  |    5 +++--
+ http.c  |    4 ++--
+ http.h  |    4 ++--
+ local.c |   57 +++++++++++++++++++++++++++++++++++++++++++---------
+ local.h |    6 +++---
+ 6 files changed, 119 insertions(+), 25 deletions(-)
+
+diff --git a/fifo.c b/fifo.c
+index f69c333..994028c 100644
+--- a/fifo.c
++++ b/fifo.c
+@@ -1,25 +1,79 @@
++#include <pthread.h>
++#include <stdlib.h>
++#include <string.h>
+ #include "fifo.h"
+ 
+ struct fifo *fifo_open()
+ {
+-	// fixme!
+-	return 0;
++	struct fifo *fifo;
++
++	fifo = malloc(sizeof(*fifo));
++	if (NULL == fifo) {
++		perror("malloc");
++		return NULL;
++	}
++
++	fifo->size = ARRAY_SIZE(fifo->data);
++	fifo->read = 0;
++	fifo->write = 0;
++	fifo->used = 0;
++	pthread_mutex_init(&fifo->mutex, NULL);
++
++	return fifo;
+ }
+ 
+ int fifo_close(struct fifo *fifo)
+ {
+-	// fixme!
++	free(fifo);
++
+ 	return 0;
+ }
+ 
+ int fifo_write(struct fifo *fifo, u8 *buff, size_t size)
+ {
+-	// fixme!
+-	return 0;
++	int i;
++	size_t rest;
++
++	while (size > 0) {
++		pthread_mutex_lock(&fifo->mutex);
++		rest = fifo->size - fifo->used;
++		if (rest > size)
++			rest = size;
++
++		for (i = 0; i < rest; i++) {
++			fifo->data[fifo->write] = buff[i];
++			fifo->write++;
++			fifo->write %= fifo->size;
++		}
++
++		fifo->used += rest;
++		pthread_mutex_unlock(&fifo->mutex);
++
++		size -= rest;
++		buff += rest;
++
++		sleep(1);
++	}
++
++	return size;
+ }
+ 
+ int fifo_read(struct fifo *fifo, u8 *buff, size_t size)
+ {
+-	// fixme!
+-	return 0;
++	int i;
++
++	pthread_mutex_lock(&fifo->mutex);
++	if (fifo->used < size)
++		size = fifo->used;
++
++	for (i = 0; i < size; i++) {
++		buff[i] = fifo->data[fifo->read];
++		fifo->read++;
++		fifo->read %= fifo->size;
++	}
++
++	fifo->used -= size;
++	pthread_mutex_unlock(&fifo->mutex);
++
++	return size;
+ }
+diff --git a/fifo.h b/fifo.h
+index fa7cd50..7edf094 100644
+--- a/fifo.h
++++ b/fifo.h
+@@ -3,10 +3,11 @@
+ #include <pthread.h>
+ #include "types.h"
+ 
+-#define fifo_LEN (1024 * 1024)
++#define FIFO_LEN (1024 * 1024)
++#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+ 
+ struct fifo {
+-	u8 data[fifo_LEN];
++	u8 data[FIFO_LEN];
+ 	size_t size;
+ 	size_t read;
+ 	size_t write;
+diff --git a/http.c b/http.c
+index f035e0a..9972c73 100644
+--- a/http.c
++++ b/http.c
+@@ -5,13 +5,13 @@ struct http_file_info *sound_file_open(const char *URL)
+ 	return 0;
+ }
+ 
+-int http_file_close(struct sound_file_into *file)
++int http_file_close(struct sound_file_info *file)
+ {
+ 	// fixme!
+ 	return 0;
+ }
+ 
+-int http_file_load(struct sound_file_into *file, u8 *buff, size_t size)
++int http_file_load(struct sound_file_info *file, u8 *buff, size_t size)
+ {
+ 	// fixme!
+ 
+diff --git a/http.h b/http.h
+index f995875..a50062c 100644
+--- a/http.h
++++ b/http.h
+@@ -2,5 +2,5 @@
+ #include "sound_file.h"
+ 
+ struct http_file_info *sound_file_open(const char *URL);
+-int http_file_close(struct sound_file_into *file);
+-int http_file_load(struct sound_file_into *file, u8 *buff, size_t size);
++int http_file_close(struct sound_file_info *file);
++int http_file_load(struct sound_file_info *file, u8 *buff, size_t size);
+diff --git a/local.c b/local.c
+index 80e3840..68b41aa 100644
+--- a/local.c
++++ b/local.c
+@@ -1,19 +1,58 @@
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <unistd.h>
++#include "sound_file.h"
+ #include "local.h"
+ 
+-struct local_file_info *sound_file_open(const char *URL)
++struct sound_file_info *local_file_open(const char *URL)
+ {
+-	// fixme!
+-	return NULL;
++	int fd;
++	int ret;
++	struct stat sa;
++	struct sound_file_info *info;
++
++	info = malloc(sizeof(* info));
++
++	fd = open(URL, O_RDONLY);
++	if (fd < 0) {
++		perror("local open");
++		return NULL;
++	}
++
++	ret = fstat(fd, &sa);
++	if (ret < 0) {
++		fprintf(stderr, "local file get size failed!");
++		close(fd);
++		return NULL;
++	}
++
++	info->size = sa.st_size;
++	info->fd = fd;
++	info->url = URL;
++
++	return info;
+ }
+ 
+-int local_file_close(struct sound_file_into *file)
++int local_file_close(struct sound_file_info *file)
+ {
+-	// fixme!
+-	return 0;
++	int ret;
++
++	ret = close(file->fd);
++	if (ret < 0)
++		perror("close");
++
++	return ret;
+ }
+ 
+-int local_file_load(struct sound_file_into *file, u8 *buff, size_t size)
++int local_file_load(struct sound_file_info *file, u8 *buff, size_t size)
+ {
+-	// fixme!
+-	return 0;
++	int ret;
++
++	ret = read(file->fd, buff, size);
++	if (ret < 0) {
++		perror("read");
++		return ret;
++	}
++
++	return ret;
+ }
+diff --git a/local.h b/local.h
+index ed32985..5cab0b5 100644
+--- a/local.h
++++ b/local.h
+@@ -1,6 +1,6 @@
+ #pragma once
+ #include "sound_file.h"
+ 
+-struct local_file_info *sound_file_open(const char *URL);
+-int local_file_close(struct sound_file_into *file);
+-int local_file_load(struct sound_file_into *file, u8 *buff, size_t size);
++struct sound_file_info *local_file_open(const char *URL);
++int local_file_close(struct sound_file_info *file);
++int local_file_load(struct sound_file_info *file, u8 *buff, size_t size);
+-- 
+1.7.9.5
+
