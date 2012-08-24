@@ -1,4 +1,5 @@
 #include "window.h"
+#include "icon.h"
 
 void *get_vm()
 {
@@ -30,9 +31,11 @@ int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *p
 
 int show_icon(struct window *win, u8 *icon, size_t size)
 {
-	// fixme!
+	int ret;
 
-	return 0;
+	ret = show_icon_coord(win, icon, size);
+
+	return ret;
 }
 
 int show_progressbar(struct progressbar_win *bar)
