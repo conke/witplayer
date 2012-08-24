@@ -25,3 +25,4 @@ int get_mp3_param(struct decode *dec, u8 *buff, size_t size, struct mp3_param *p
 struct decode *decode_open(decode_type_t type);
 int decode_close(struct decode *dec);
 int decode(struct decode *dec, u8 *raw_buff, size_t *raw_size, u8 *mp3_buff, size_t mp3_size);
+int free_pares_mp3_tag(void *lrc, void *icon);
