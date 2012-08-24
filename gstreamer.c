@@ -1,3 +1,4 @@
+#include <string.h>
 #include <gst/gst.h>
 #include "gstreamer.h"
 

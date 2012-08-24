@@ -1,14 +1,15 @@
 SRC = $(wildcard *.c)
 OBJ = $(SRC:%.c=%.o)
 OUT = witplayer
+CC = gcc
 
-CFLAGS = -I. -Wall
-LDFLAGS = -lpthread -lm
+CFLAGS = -I. -Wall `pkg-config gstreamer-0.10 --cflags`
+LDFLAGS = -lpthread -lm `pkg-config gstreamer-0.10 --libs`
 
 all: $(OUT)
 
-$(OUT): $(OBJ)
-	$(CC) $(CFALGS) -o $@ $^ $(LDFLAGS)
+$(OUT): $(SRC)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	@rm -rfv *.o $(OUT)

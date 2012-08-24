@@ -3,10 +3,11 @@
 #include <pthread.h>
 #include "types.h"
 
-#define fifo_LEN (1024 * 1024)
+#define FIFO_LEN (1024 * 1024)
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 struct fifo {
-	u8 data[fifo_LEN];
+	u8 data[FIFO_LEN];
 	size_t size;
 	size_t read;
 	size_t write;

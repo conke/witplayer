@@ -12,7 +12,7 @@ struct load_thread_arg {
 	struct fifo *fifo;
 };
 
-static void *load_to_fifo(void *arg)
+static void *load_mp3_data_to_fifo(void *arg)
 {
 	struct sound_file_info *file;
 	struct fifo *fifo;
@@ -22,9 +22,13 @@ static void *load_to_fifo(void *arg)
 	file = ((struct load_thread_arg *)arg)->file;
 	fifo = ((struct load_thread_arg *)arg)->fifo;
 
-	while (1) {
+	file->offset = file->mp3_data_start;
+
+	while (file->offset < file->mp3_data_end) {
+		size = file->mp3_data_end - file->offset;
+		size = size > LOAD_BUFF ? LOAD_BUFF : size;
 		size = sound_file_load(file, buff, LOAD_BUFF);
-		if (size == 0)
+		if (size < 0)
 			break;
 
 		fifo_write(fifo, buff, size);
@@ -46,7 +50,6 @@ int main(int argc, char *argv[])
 	u8 *icon;
 	size_t lrc_size;
 	size_t icon_size;
-	size_t tag_size;
 	size_t size;
 	u8 mp3_buff[MP3_BUFF_SIZE];
 	u8 raw_buff[RAW_BUFF_SIZE];
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
 
 	arg.fifo = fifo;
 	arg.file = file;
-	ret = pthread_create(&tid, NULL, load_to_fifo, &arg);
+	ret = pthread_create(&tid, NULL, load_mp3_data_to_fifo, &arg);
 	if (ret < 0) {
 		goto L2;
 	}

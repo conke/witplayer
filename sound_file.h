@@ -11,6 +11,8 @@ struct sound_file_info {
 	int fd;
 	size_t size;
 	size_t offset;
+	size_t mp3_data_start;
+	size_t mp3_data_end;
 	SoundFileType type;
 };
 
