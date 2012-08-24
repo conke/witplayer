@@ -27,3 +27,10 @@ int sound_file_load(struct sound_file_info *file, u8 *buff, size_t size)
 
 	return 0;
 }
+
+int sound_file_seek(struct sound_file_info *file, size_t offset)
+{
+	file->offset = offset;
+
+	return 0;
+}

@@ -2,19 +2,7 @@
 #include "mpaudec.h"
 #include <stdlib.h>
 
-u8 *get_mp3_tag_buff(struct fifo *fifo, size_t *size)
-{
-	// fixme!
-	return NULL;
-}
-
-int release_tag_buff(u8 *buff)
-{
-	// fixme!
-	return 0;
-}
-
-int parse_mp3_tag(u8 *buff, size_t size, u8 **lrc, size_t *lrc_size, u8 **icon, size_t *icon_size)
+int parse_mp3_tag(struct sound_file_info *ifno, u8 **lrc, size_t *lrc_size, u8 **icon, size_t *icon_size)
 {
 	// fixme!
 

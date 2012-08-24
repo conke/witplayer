@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
 	struct load_thread_arg arg;
 	u8 *lrc;
 	u8 *icon;
-	u8 *tag;
 	size_t lrc_size;
 	size_t icon_size;
 	size_t tag_size;
@@ -73,6 +72,11 @@ int main(int argc, char *argv[])
 		ret = -ENOMEM;
 	}
 
+	ret = parse_mp3_tag(file, &lrc, &lrc_size, &icon, &icon_size);
+	if (ret < 0) {
+		goto L2;
+	}
+
 	arg.fifo = fifo;
 	arg.file = file;
 	ret = pthread_create(&tid, NULL, load_to_fifo, &arg);
@@ -82,14 +86,6 @@ int main(int argc, char *argv[])
 
 	dec = decode_open(MPAUDEC); // fixme!
 
-	tag = get_mp3_tag_buff(fifo, &tag_size);
-	if (NULL == tag) {
-		ret = -EBADF;
-		goto L3;
-	}
-
-	parse_mp3_tag(tag, tag_size, &lrc, &lrc_size, &icon, &icon_size);
-
 	// show_icon(icon, icon_size);
 
 	mp3_size = fifo_read(fifo, mp3_buff, sizeof(mp3_buff));
@@ -98,10 +94,10 @@ int main(int argc, char *argv[])
 	out = open_audio(AUDIO_ALSA, &mp3_pm);
 	if (NULL == out) {
 		ret = -ENODEV;
-		goto L4;
+		goto L3;
 	}
 
-	size = mp3_size + tag_size;
+	size = mp3_size;
 	while (size < file->size) {
 		raw_size = sizeof(raw_buff);
 
@@ -117,8 +113,6 @@ int main(int argc, char *argv[])
 	}
 
 	close_audio(out);
-L4:
-	release_tag_buff(tag);
 L3:
 	decode_close(dec);
 L2:
