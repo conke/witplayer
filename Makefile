@@ -4,7 +4,7 @@ OUT = witplayer
 CC = gcc
 
 CFLAGS = -I. -Wall `pkg-config gstreamer-0.10 --cflags`
-LDFLAGS = -lpthread -lm -lpng `pkg-config gstreamer-0.10 --libs`
+LDFLAGS = -lpthread -lm -lpng -lasound `pkg-config gstreamer-0.10 --libs`
 
 all: $(OUT)
 
