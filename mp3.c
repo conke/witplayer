@@ -5,6 +5,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+
+#define PATH "/maxwit/project/witplayer"
+#define CMP(a, b, c) (('T' == (a)) && ('A' == (b)) && ('G' == (c)))
 
 #define TITLE_LEN 512
 #define ID3_HEAD_SIZE 10
@@ -21,6 +28,90 @@
 #define CHECK_TT2_V2(frame) (((frame)[0] == 'T') && ((frame)[1] == 'T') && ((frame)[2] == '2'))
 #define CHECK_SLT_V2(frame) (((frame)[0] == 'S') && ((frame)[1] == 'L') && ((frame)[2] == 'T'))
 #define CHECK_PIC_V2(frame) (((frame)[0] == 'P') && ((frame)[1] == 'I') && ((frame)[2] == 'C'))
+
+static int parse_ID3v1_tag(u8 *buff, struct sound_file_info *ifno, u8 **lrc, size_t *lrc_size, u8 **icon,size_t *icon_size)
+{
+	if (CMP(buff[0], buff[1], buff[2])) {
+		ifno->mp3_data_end = ifno->size - 128;
+	} else {
+		ifno->mp3_data_end = ifno->size;
+	}
+
+	return 0;
+}
+
+static int traverse_dir_match(char path[], u8 *title, char *f_path)
+{
+	DIR *dir;
+	char tmp[256];
+	size_t ret;
+	struct dirent *dir_rent;
+
+	dir = opendir(path);
+
+	while (NULL != (dir_rent = readdir(dir))) {
+		if (strcmp(dir_rent->d_name, ".") == 0)
+			continue;
+		else if (strcmp(dir_rent->d_name, "..") == 0)
+			continue;
+
+		strcpy(tmp, path);
+		strcat(strcat(tmp, "/"), dir_rent->d_name);
+
+		if (dir_rent->d_type == DT_DIR) {
+			ret = traverse_dir_match(tmp, title, f_path);
+			if (ret == 0)
+				return ret;
+		} else {
+			if (!strcmp(dir_rent->d_name, (const char *)title)) {
+				printf("find it!!\n");
+				strcpy(f_path, tmp);
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
+
+static int add_lrc(u8 *title, u8 **lrc, size_t *size)
+{
+	int fd;
+	int ret;
+	char file[256];
+	struct stat sb;
+
+	ret = traverse_dir_match(PATH, title, file);
+	if (ret < 0) {
+		printf("not find %s\n", title);
+		return ret;
+	}
+
+	fd = open(file, O_RDONLY);
+	if (fd < 0) {
+		perror("open");
+		return -1;
+	}
+
+	ret = fstat(fd, &sb);
+	if (ret < 0) {
+		perror("fstat");
+		return -1;
+	}
+
+	*lrc = malloc(sizeof(u8) * sb.st_size);
+	ret = read(fd, *lrc, sb.st_size);
+	if (ret < 0) {
+		perror("read");
+		return -1;
+	}
+
+	close(fd);
+
+	*size = ret;
+
+	return 0;
+}
 
 static int change_encode(u8 *buff, size_t size)
 {
