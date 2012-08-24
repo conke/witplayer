@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 
 	parse_mp3_tag(tag, tag_size, &lrc, &lrc_size, &icon, &icon_size);
 
-	show_icon(icon, icon_size);
+	// show_icon(icon, icon_size);
 
 	mp3_size = fifo_read(fifo, mp3_buff, sizeof(mp3_buff));
 	get_mp3_param(dec, mp3_buff, mp3_size, &mp3_pm);

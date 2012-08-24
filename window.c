@@ -1,20 +1,41 @@
 #include "window.h"
 
-int show_wave(u8 *raw_data, size_t size, struct mp3_param *param)
+void *get_vm()
+{
+	// fixme!
+
+	return NULL;
+}
+
+struct fb_fix_screeninfo *get_fix()
+{
+	// fixme!
+
+	return NULL;
+}
+
+struct fb_var_screeninfo *get_var()
+{
+	// fixme!
+
+	return NULL;
+}
+
+int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *param)
 {
 	// fixme!
 
 	return 0;
 }
 
-int show_icon(u8 *icon, size_t size)
+int show_icon(struct window *win, u8 *icon, size_t size)
 {
 	// fixme!
 
 	return 0;
 }
 
-int show_progressbar(size_t current, size_t total)
+int show_progressbar(struct progressbar_win *bar)
 {
 	int i, j;
 	int len = 0;
@@ -24,6 +45,8 @@ int show_progressbar(size_t current, size_t total)
 	struct fb_var_screeninfo var;
 	char blue[4] = {255, 0, 0, 0};
 	char grean[4] = {0, 255, 0, 0};
+	size_t current = bar->cur;
+	size_t total = bar->max;
 
 	fd = open(FB_DEV, O_RDWR | O_NONBLOCK);
 	if (fd < 0) {
