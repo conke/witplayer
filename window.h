@@ -8,7 +8,11 @@
 #include <sys/ioctl.h>
 #include "mp3.h"
 
-typedef int color_t;
+typedef struct {
+	char b;
+	char g;
+	char r;
+} color_t;
 
 struct window {
 	int x, y;
@@ -32,12 +36,29 @@ struct text_win {
 	char *text;
 };
 
-struct window_thread_arg {
-	u8 *icon;
-	size_t *icon_size;
+struct window_info {
+	int fd;
+	void *vm;
+
+	int width;
+	int height;
+	int bpp;
+
+	struct fb_fix_screeninfo fix;
+	struct fb_var_screeninfo var;
+
+	struct progressbar_win progressbar;
+	struct text_win text;
+	struct window icon_win;
+	struct window wave_win;
+
+	struct timeval total;
 	u8 *lrc;
-	size_t *lrc_size;
+	size_t lrc_size;
+	u8 *icon;
+	size_t icon_size;
 };
+
 
 #define FB_DEV "/dev/fb0"
 #define LEN_W(a)  ((a) * 8 / 10)
@@ -47,12 +68,13 @@ void *get_vm();
 struct fb_fix_screeninfo *get_fix();
 struct fb_var_screeninfo *get_var();
 
-int window_init();
+struct window_info *window_init();
 int window_destroy();
 
 int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *param);
 int show_icon(struct window *win, u8 *icon, size_t size);
 int show_progressbar(struct progressbar_win *bar);
 int show_text(struct text_win *text);
+int flush_window(struct timeval tv, void *raw, int size, int n);
 
-void *window_show(void *arg);
+

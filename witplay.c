@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	int mp3_size, raw_size;
 	struct mp3_param mp3_pm;
 	struct audio_output *out;
-	struct window_thread_arg win_arg;
+	struct window_info *win_info;
 
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s PATH\n", argv[0]);
@@ -102,20 +102,21 @@ int main(int argc, char *argv[])
 		goto L2;
 	}
 
-	win_arg.icon = icon;
-	win_arg.icon_size = &icon_size;
-	win_arg.lrc = lrc;
-	win_arg.lrc_size = &lrc_size;
-
-	pthread_create(&tid, NULL, window_show, &win_arg);
-
 	while (fifo->used < fifo->size / 3) usleep(1000);
 	mp3_size = fifo_read(fifo, mp3_buff, sizeof(mp3_buff));
 
 	get_mp3_param(dec, mp3_buff, mp3_size, &mp3_pm);
 
-	DPRINT("rate = %d, channels = %d, bps = %d\n",
-			mp3_pm.rate, mp3_pm.channels, mp3_pm.bits_per_sample);
+	win_info = window_init();
+	win_info->icon = icon;
+	win_info->icon_size = icon_size;
+	win_info->lrc = lrc;
+	win_info->lrc_size = lrc_size;
+	win_info->total.tv_sec = (file->mp3_data_end - file->mp3_data_start) * 8 / mp3_pm.bit_rate;
+	win_info->total.tv_usec = (file->mp3_data_end - file->mp3_data_start) * 8 * 1000000 / mp3_pm.bit_rate % 1000000;
+
+	DPRINT("rate = %d, channels = %d, bps = %d, bitrate = %d\n",
+			mp3_pm.rate, mp3_pm.channels, mp3_pm.bits_per_sample, mp3_pm.bit_rate);
 
 	out = open_audio(AUDIO_ALSA, &mp3_pm);
 	if (NULL == out) {

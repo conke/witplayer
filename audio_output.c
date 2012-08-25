@@ -1,6 +1,7 @@
+#include <stdlib.h>
 #include "audio_output.h"
 #include "alsa.h"
-#include <stdlib.h>
+#include "window.h"
 
 struct audio_output *open_audio(audio_dev_t type, struct mp3_param *param) {
 	struct audio_output *out;
@@ -48,19 +49,32 @@ int close_audio(struct audio_output *out) {
 int play_frames(struct audio_output *out, u8 *raw_buff, size_t size, struct mp3_param *param, u8 *lrc, size_t lrc_size)
 {
 	int frames;
+	int frame_size;
+	static struct timeval tv;
 	int ret;
+	int frame_time;
 
-	frames = size / (param->channels * param->bits_per_sample / 8);
+	frame_time = 1000 * 1000 / param->rate;
+
+	frame_size = param->channels * param->bits_per_sample / 8;
+	frames = size / frame_size;
 
 	switch (out->type) {
-	case AUDIO_GSTREAMER:
-		// play_gstreamer_frames(out->outdev, raw_buff, frames); fixme!
-		break;
-
 	case AUDIO_ALSA:
 		ret = play_alsa_frames(out->outdev, raw_buff, frames);
 		break;
+
+	default:
+		break;
 	}
+
+	tv.tv_usec += frame_time * frames;
+	if (tv.tv_usec >= 1000000) {
+		tv.tv_usec -= 1000000;
+		tv.tv_sec += 1;
+	}
+
+	flush_window(tv, raw_buff, size, param->channels);
 
 
 	return ret;

@@ -13,6 +13,7 @@ struct mp3_param {
 	int rate;
 	int channels;
 	int bits_per_sample;
+	int bit_rate;
 };
 
 struct decode {

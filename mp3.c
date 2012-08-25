@@ -344,6 +344,7 @@ int get_mp3_param(struct decode *dec, u8 *buff, size_t size, struct mp3_param *p
 		param->bits_per_sample = 16;
 		param->channels = mdec->channels;
 		param->rate = mdec->sample_rate;
+		param->bit_rate = mdec->bit_rate;
 
 		mdec->parse_only = 0;
 

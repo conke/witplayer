@@ -103,7 +103,7 @@ int show_lyric(const u8 *lrc_buff, size_t size, struct timeval *total, struct ti
 	char buff[512];
 	static int flag = 0;
 
-	timeData = curr->tv_sec + curr->tv_usec;
+	timeData = curr->tv_sec + curr->tv_usec / 1000000.0;
 
 	if (lrc_buff == NULL)
 		return -1;
@@ -113,12 +113,13 @@ int show_lyric(const u8 *lrc_buff, size_t size, struct timeval *total, struct ti
 		first = Transfer_lyric(lrc_buff, size, first);
 		flag = 1;
 	}
+
 	if (flag == 1) {
 		first = DeleteNode(first, timeData, buff);
 		//show_text(char *text);  //fixme
 	}
 
-	if (fabs(timeData - (total->tv_sec + total->tv_usec)) < 0.001)
+	if (fabs(timeData - (total->tv_sec + total->tv_usec / 1000000.0)) < 0.001)
 		DestroyNode(first);
 
 	return 0;
