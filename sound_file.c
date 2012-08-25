@@ -41,7 +41,7 @@ int sound_file_load(struct sound_file_info *file, u8 *buff, size_t size)
 	}
 
 	if (ret > 0)
-		file->offset = ret;
+		file->offset += ret;
 
 	return ret;
 }

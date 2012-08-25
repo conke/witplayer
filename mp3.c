@@ -10,8 +10,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#define TAGV1_SIZE 128
+#define ID3_TAG_HEAD_SIZE 10
+
 #define PATH "/maxwit/project/witplayer"
-#define CMP(a, b, c) (('T' == (a)) && ('A' == (b)) && ('G' == (c)))
+#define TAGV1_CHK(tag) (('T' == (tag)[0]) && ('A' == (tag)[1]) && ('G' == (tag)[2]))
 
 #define TITLE_LEN 512
 #define ID3_HEAD_SIZE 10
@@ -31,8 +34,8 @@
 
 static int parse_ID3v1_tag(u8 *buff, struct sound_file_info *ifno, u8 **lrc, size_t *lrc_size, u8 **icon,size_t *icon_size)
 {
-	if (CMP(buff[0], buff[1], buff[2])) {
-		ifno->mp3_data_end = ifno->size - 128;
+	if (TAGV1_CHK(buff)) {
+		ifno->mp3_data_end = ifno->size - TAGV1_SIZE;
 	} else {
 		ifno->mp3_data_end = ifno->size;
 	}
@@ -288,20 +291,26 @@ int free_pares_mp3_tag(void *lrc, void *icon)
 int parse_mp3_tag(struct sound_file_info *ifno, u8 **lrc, size_t *lrc_size, u8 **icon, size_t *icon_size)
 {
 	int ret;
-	u8 head[10];
-	sound_file_seek(ifno, 0);
-	sound_file_load(ifno, head, 10);
+	u8 head[ID3_TAG_HEAD_SIZE];
 
+	sound_file_seek(ifno, 0);
+	sound_file_load(ifno, head, sizeof(head));
 	if (head[0] == 'I' && head[1] == 'D' && head[2] == '3') {
 		u8 *buff_v2;
 		u8 buff_v1[128];
+		size_t ID3_size;
 
-		buff_v2 = malloc(ID3_HEAD_SIZE + ID3SIZE(head));
+		ID3_size = ID3SIZE(head);
+		ifno->mp3_data_start = ID3_size + ID3_HEAD_SIZE;
+
+		buff_v2 = malloc(ID3_HEAD_SIZE + ID3_size);
+		if (NULL == buff_v2) {
+			DPRINT("\n");
+			return -1;
+		}
+
 		sound_file_seek(ifno, 0);
 		sound_file_load(ifno, buff_v2, ID3_HEAD_SIZE + ID3SIZE(head));
-		size_t ID3_size = ID3SIZE(buff_v2);
-
-		ifno->mp3_data_start =ID3_size + ID3_HEAD_SIZE;
 
 		ret = parse_ID3v2_tag(buff_v2, ID3_HEAD_SIZE + ID3SIZE(head), lrc, lrc_size, icon, icon_size);
 		if (ret < 0)
@@ -322,8 +331,26 @@ int parse_mp3_tag(struct sound_file_info *ifno, u8 **lrc, size_t *lrc_size, u8 *
 
 int get_mp3_param(struct decode *dec, u8 *buff, size_t size, struct mp3_param *param)
 {
-	// fixme!
-	return 0;
+	if (dec->type == MPAUDEC) {
+		char raw_buff[MPAUDEC_MAX_AUDIO_FRAME_SIZE];
+		int raw_size;
+
+		MPAuDecContext *mdec;
+
+		mdec = dec->dec;
+
+		mdec->parse_only = 1;
+		mpaudec_decode_frame(mdec, raw_buff, &raw_size, buff, size);
+		param->bits_per_sample = 16;
+		param->channels = mdec->channels;
+		param->rate = mdec->sample_rate;
+
+		mdec->parse_only = 0;
+
+		return 0;
+	}
+
+	return -1;
 }
 
 struct decode *decode_open(decode_type_t type)
@@ -354,7 +381,7 @@ int decode_close(struct decode *dec)
 {
 	switch (dec->type) {
 	case MPAUDEC:
-		mpaudec_close(dec->dec);
+		// mpaudec_close(dec->dec);
 		break;
 	case GSTREAMERDEC:
 		break;
@@ -365,10 +392,10 @@ int decode_close(struct decode *dec)
 	return 0;
 }
 
-int decode(struct decode *dec, u8 *raw_buff, size_t *raw_size, u8 *mp3_buff, size_t mp3_size)
+int decode(struct decode *dec, u8 *raw_buff, int *raw_size, u8 *mp3_buff, size_t mp3_size)
 {
 	if (dec->type == MPAUDEC) {
-		return mpaudec_decode_frame(dec->dec, raw_buff, (int *)raw_size, mp3_buff, mp3_size);
+		return mpaudec_decode_frame(dec->dec, raw_buff, raw_size, mp3_buff, mp3_size);
 	}
 
 	return 0;

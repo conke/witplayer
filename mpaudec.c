@@ -1963,7 +1963,6 @@ static void compute_imdct(MPADecodeContext *s,
 static int mp_decode_layer3(MPADecodeContext *s)
 {
     int nb_granules, main_data_begin;
-	//int private_bits;
     int gr, ch, blocksplit_flag, i, j, k, n, bits_pos, bits_left;
     GranuleDef granules[2][2], *g;
     int16_t exponents[576];
@@ -1971,17 +1970,17 @@ static int mp_decode_layer3(MPADecodeContext *s)
     /* read side info */
     if (s->lsf) {
         main_data_begin = get_bits(&s->gb, 8);
-        // if (s->nb_channels == 2)
-        //     private_bits = get_bits(&s->gb, 2);
-        // else
-        //     private_bits = get_bits(&s->gb, 1);
+         if (s->nb_channels == 2)
+             get_bits(&s->gb, 2);
+         else
+             get_bits(&s->gb, 1);
         nb_granules = 1;
     } else {
         main_data_begin = get_bits(&s->gb, 9);
-        // if (s->nb_channels == 2)
-        //     private_bits = get_bits(&s->gb, 3);
-        // else
-        //     private_bits = get_bits(&s->gb, 5);
+         if (s->nb_channels == 2)
+             get_bits(&s->gb, 3);
+         else
+             get_bits(&s->gb, 5);
         nb_granules = 2;
         for(ch=0;ch<s->nb_channels;ch++) {
             granules[ch][0].scfsi = 0; /* all scale factors are transmitted */

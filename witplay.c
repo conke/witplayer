@@ -1,11 +1,12 @@
 #include <errno.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <string.h>
 #include "witplay.h"
 
 #define LOAD_BUFF (200 * 1024)
 #define MP3_BUFF_SIZE 4096
-#define RAW_BUFF_SIZE 4096
+#define RAW_BUFF_SIZE 4608
 
 struct load_thread_arg {
 	struct sound_file_info *file;
@@ -50,10 +51,9 @@ int main(int argc, char *argv[])
 	u8 *icon;
 	size_t lrc_size;
 	size_t icon_size;
-	size_t size;
 	u8 mp3_buff[MP3_BUFF_SIZE];
 	u8 raw_buff[RAW_BUFF_SIZE];
-	size_t mp3_size, raw_size;
+	int mp3_size, raw_size;
 	struct mp3_param mp3_pm;
 	struct audio_output *out;
 
@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
 
 	file = sound_file_open(url);
 	if (NULL == file) {
+		fprintf(stderr, "Fail to open sound file \"%s\"!\n", url);
 		return -ENODEV;
 	}
 
@@ -77,22 +78,38 @@ int main(int argc, char *argv[])
 
 	ret = parse_mp3_tag(file, &lrc, &lrc_size, &icon, &icon_size);
 	if (ret < 0) {
+		DPRINT("\n");
 		goto L2;
 	}
+
+	DPRINT("mp3_start = %lu, mp3_end = %lu, "
+			"lrc = %p, lrc_size = %lu, icon = %p, icon_size = %lu\n",
+			file->mp3_data_start, file->mp3_data_end,
+			lrc, lrc_size, icon, icon_size);
 
 	arg.fifo = fifo;
 	arg.file = file;
 	ret = pthread_create(&tid, NULL, load_mp3_data_to_fifo, &arg);
 	if (ret < 0) {
+		DPRINT("\n");
 		goto L2;
 	}
 
 	dec = decode_open(MPAUDEC); // fixme!
+	if (NULL == dec) {
+		ret = -ENODEV;
+		goto L2;
+	}
 
 	// show_icon(icon, icon_size);
 
+	while (fifo->used < fifo->size / 3) usleep(1000);
 	mp3_size = fifo_read(fifo, mp3_buff, sizeof(mp3_buff));
+
 	get_mp3_param(dec, mp3_buff, mp3_size, &mp3_pm);
+
+	DPRINT("rate = %d, channels = %d, bps = %d\n",
+			mp3_pm.rate, mp3_pm.channels, mp3_pm.bits_per_sample);
 
 	out = open_audio(AUDIO_ALSA, &mp3_pm);
 	if (NULL == out) {
@@ -100,18 +117,20 @@ int main(int argc, char *argv[])
 		goto L3;
 	}
 
-	size = mp3_size;
-	while (size < file->size) {
-		raw_size = sizeof(raw_buff);
+	while (1) {
+		if (file->mp3_data_end == file->offset && mp3_size == 0)
+			break;
 
 		if (mp3_size > 0) {
 			ret = decode(dec, raw_buff, &raw_size, mp3_buff, mp3_size);
 			mp3_size -= ret;
+			memmove(mp3_buff, mp3_buff + ret, mp3_size);
 		}
 
 		play_frames(out, raw_buff, raw_size, &mp3_pm, lrc, lrc_size);
 
-		ret = fifo_read(fifo, mp3_buff, sizeof(mp3_buff) - mp3_size);
+		ret = fifo_read(fifo, mp3_buff + mp3_size, sizeof(mp3_buff) - mp3_size);
+
 		mp3_size += ret;
 	}
 

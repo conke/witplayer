@@ -30,6 +30,9 @@ struct sound_file_info *local_file_open(const char *URL)
 	info->size = sa.st_size;
 	info->fd = fd;
 	info->url = URL;
+	info->type = LOCAL;
+	info->mp3_data_start = 0;
+	info->mp3_data_end = info->size;
 
 	return info;
 }
