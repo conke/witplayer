@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
 	int mp3_size, raw_size;
 	struct mp3_param mp3_pm;
 	struct audio_output *out;
+	struct window_thread_arg win_arg;
 
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s PATH\n", argv[0]);
@@ -101,7 +102,12 @@ int main(int argc, char *argv[])
 		goto L2;
 	}
 
-	// show_icon(icon, icon_size);
+	win_arg.icon = icon;
+	win_arg.icon_size = &icon_size;
+	win_arg.lrc = lrc;
+	win_arg.lrc_size = &lrc_size;
+
+	pthread_create(&tid, NULL, window_show, &win_arg);
 
 	while (fifo->used < fifo->size / 3) usleep(1000);
 	mp3_size = fifo_read(fifo, mp3_buff, sizeof(mp3_buff));
@@ -135,6 +141,7 @@ int main(int argc, char *argv[])
 	}
 
 	close_audio(out);
+	window_destroy();
 L3:
 	decode_close(dec);
 L2:

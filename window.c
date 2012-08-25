@@ -1,25 +1,62 @@
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <string.h>
 #include "window.h"
 #include "icon.h"
 
+struct display_info {
+	int fd;
+	void *vm;
+	struct fb_fix_screeninfo fix;
+	struct fb_var_screeninfo var;
+};
+
+struct display_info display;
+
+int window_init()
+{
+	int fd;
+
+	fd = open(FB_DEV, O_RDWR);
+
+	ioctl(fd, FBIOGET_VSCREENINFO, &display.var);
+	ioctl(fd, FBIOGET_FSCREENINFO, &display.fix);
+
+	printf("mem_len = %u, line_len = %u\n",
+			display.fix.smem_len, display.fix.line_length);
+
+	printf("w = %d, h = %d, bpp = %d\n",
+			display.var.xres_virtual, display.var.yres_virtual, display.var.bits_per_pixel);
+
+	display.vm = mmap(NULL, display.fix.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+	display.fd = fd;
+
+	return 0;
+}
+
+int window_destroy()
+{
+	munmap(display.vm, display.fix.smem_len);
+	close(display.fd);
+
+	return 0;
+}
+
 void *get_vm()
 {
-	// fixme!
-
-	return NULL;
+	return display.vm;
 }
 
 struct fb_fix_screeninfo *get_fix()
 {
-	// fixme!
-
-	return NULL;
+	return &display.fix;
 }
 
 struct fb_var_screeninfo *get_var()
 {
-	// fixme!
-
-	return NULL;
+	return &display.var;
 }
 
 int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *param)
@@ -89,4 +126,23 @@ int show_progressbar(struct progressbar_win *bar)
 
 	close(fd);
 	return 0;
+}
+
+void *window_show(void *arg)
+{
+	struct window_thread_arg *p = arg;
+	struct window win_icon = {0, 0, 800, 600};
+//	struct window win_lrc;
+//	struct window win_progressbar;
+
+	window_init();
+
+	while (1) {
+		memset(display.vm, 0, display.fix.smem_len);
+		show_icon(&win_icon, p->icon, *(p->icon_size));
+
+		sleep(1);
+	}
+
+	return NULL;
 }
