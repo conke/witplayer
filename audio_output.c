@@ -46,7 +46,7 @@ int close_audio(struct audio_output *out) {
 	return 0;
 }
 
-int play_frames(struct audio_output *out, u8 *raw_buff, size_t size, struct mp3_param *param, u8 *lrc, size_t lrc_size)
+int play_frames(struct audio_output *out, u8 *raw_buff, size_t size, struct mp3_param *param)
 {
 	int frames;
 	int frame_size;
@@ -74,7 +74,7 @@ int play_frames(struct audio_output *out, u8 *raw_buff, size_t size, struct mp3_
 		tv.tv_sec += 1;
 	}
 
-	flush_window(tv, raw_buff, size, param->channels);
+	flush_window(tv, raw_buff, size);
 
 
 	return ret;

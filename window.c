@@ -53,19 +53,19 @@ struct window_info * window_init()
 
 	windows.fd = fd;
 
-	windows.icon_win.x = 200;
+	windows.icon_win.x = 0;
 	windows.icon_win.y = 0;
-	windows.icon_win.h = 800;
-	windows.icon_win.w = 100;
+	windows.icon_win.h = 200;
+	windows.icon_win.w = 300;
 
-//	windows.wave_win.x = 200;
-//	windows.wave_win.y = 300;
-//	windows.wave_win.w = 400;
-//	windows.wave_win.h = 200;
+	windows.wave_win.x = 300;
+	windows.wave_win.y = 0;
+	windows.wave_win.w = 300;
+	windows.wave_win.h = 200;
 
-	windows.progressbar.win.x = 200;
-	windows.progressbar.win.y = 80;
-	windows.progressbar.win.w = 200;
+	windows.progressbar.win.x = 300;
+	windows.progressbar.win.y = 200;
+	windows.progressbar.win.w = 300;
 	windows.progressbar.win.h = 20;
 	windows.progressbar.bar_color = r;
 	windows.progressbar.back_color = g;
@@ -103,10 +103,62 @@ struct fb_var_screeninfo *get_var()
 	return &windows.var;
 }
 
+int show_histogram(struct window *win, int x, int percent)
+{
+	u8 *vm;
+	int i;
+	color_t black = {.g = 0xFF};
+	color_t g = {.r = 0xA0, .b = 0xA0};
+	int bpp;
+
+	bpp = windows.bpp;
+	vm = get_vm();
+
+	for (i = 0; i < win->h; i++) {
+		if (i > (percent * win->h / 100))
+			set_color(vm + ((i + win->y) * windows.width + x + win->x) * bpp, bpp, g);
+		else
+			set_color(vm + ((i + win->y) * windows.width + x + win->x) * bpp, bpp, black);
+	}
+
+	return 0;
+}
+
 int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *param)
 {
-	// fixme!
+	int frames;
+	int frame_size;
+	int i, j;
+	int bpp;
+	u8 *vm;
 
+	frame_size = param->channels * (param->bits_per_sample + 7) / 8;
+	frames = size / frame_size;
+
+	vm = get_vm();
+	bpp = windows.bpp;
+
+	i = 0;
+	if (frames < win->w) {
+		int rest;
+
+		rest = win->w - frames;
+
+		for (; i < rest; i++) {
+			for (j = 0; j < win->h; j++) {
+				memcpy(vm + ((j + win->y) * windows.width + i + win->x) * bpp,
+						vm + ((j + win->y) * windows.width + i + win->x + win->w - rest) * bpp, bpp);
+			}
+		}
+
+	}
+
+	for (j = 0; j < frames && (i + j) < win->w; j++) {
+		int val = 0;
+
+		val = *(u16 *)(raw_data + j * frame_size) * 100 >> 16;
+		show_histogram(win, i + j, val);
+	}
 
 	return 0;
 }
@@ -163,7 +215,7 @@ void draw_line(int y, color_t color)
 	}
 }
 
-int flush_window(struct timeval tv, void *raw, int size, int n)
+int flush_window(struct timeval tv, void *raw, int size)
 {
 	windows.progressbar.cur = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 	windows.progressbar.max = windows.total.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -171,7 +223,7 @@ int flush_window(struct timeval tv, void *raw, int size, int n)
 	show_icon(&windows.icon_win, windows.icon, windows.icon_size);
 	show_progressbar(&windows.progressbar);
 	show_lyric(windows.lrc, windows.lrc_size, &windows.total, &tv);
-	// show_wave();
+	show_wave(&windows.wave_win, raw, size, windows.param);
 
 	return 0;
 }

@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
 	win_info->lrc_size = lrc_size;
 	win_info->total.tv_sec = (file->mp3_data_end - file->mp3_data_start) * 8 / mp3_pm.bit_rate;
 	win_info->total.tv_usec = (file->mp3_data_end - file->mp3_data_start) * 8 * 1000000 / mp3_pm.bit_rate % 1000000;
+	win_info->param = &mp3_pm;
 
 	DPRINT("rate = %d, channels = %d, bps = %d, bitrate = %d\n",
 			mp3_pm.rate, mp3_pm.channels, mp3_pm.bits_per_sample, mp3_pm.bit_rate);
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 			memmove(mp3_buff, mp3_buff + ret, mp3_size);
 		}
 
-		play_frames(out, raw_buff, raw_size, &mp3_pm, lrc, lrc_size);
+		play_frames(out, raw_buff, raw_size, &mp3_pm);
 
 		ret = fifo_read(fifo, mp3_buff + mp3_size, sizeof(mp3_buff) - mp3_size);
 

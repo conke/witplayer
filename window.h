@@ -57,6 +57,7 @@ struct window_info {
 	size_t lrc_size;
 	u8 *icon;
 	size_t icon_size;
+	struct mp3_param *param;
 };
 
 
@@ -75,6 +76,4 @@ int show_wave(struct window *win, u8 *raw_data, size_t size, struct mp3_param *p
 int show_icon(struct window *win, u8 *icon, size_t size);
 int show_progressbar(struct progressbar_win *bar);
 int show_text(struct text_win *text);
-int flush_window(struct timeval tv, void *raw, int size, int n);
-
-
+int flush_window(struct timeval tv, void *raw, int size);
